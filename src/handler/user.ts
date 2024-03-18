@@ -16,6 +16,7 @@ export type HandlerFunc<Req> = (req: Req, res: Response) => Promise<Response>;
 export interface IHandlerUser {
 	register: HandlerFunc<AppRequest<IEmpty, IUserDto>>;
 	login: HandlerFunc<AppRequest<IEmpty, IUserDto>>;
+	logout: HandlerFunc<JwtAuthRequest<IEmpty, IEmpty>>;
 }
 
 export function newHandlerUser(repo: IRepositoryUser, repoBlacklist: IRepositoryBlacklist): IHandlerUser {
@@ -82,6 +83,36 @@ class HandlerUser implements IHandlerUser {
 				const errMsg = `failed to get user ${username}`;
 				console.error(`${errMsg}: ${err}`);
 				return res.status(500).json({ error: errMsg }).end();
+			});
+	}
+
+	// async logout(
+	// 	req: JwtAuthRequest<Empty, Empty>,
+	// 	res: Response
+	// ): Promise<Response> {
+	// 	try {
+	// 		await this.repoBlacklist.addToBlacklist(req.token);
+	// 		return res
+	// 			.status(200)
+	// 			.json({ status: `${req.token} blacklisted - logout successful` })
+	// 			.end();
+	// 	} catch (err) {
+	// 		return res
+	// 			.status(500)
+	// 			.json({ error: `failed to add ${req.token} to blacklist` });
+	// 	}
+	// }
+
+	async logout(req: JwtAuthRequest<IEmpty, IEmpty>, res: Response): Promise<Response> {
+		return await this.repoBlacklist
+			.addToBlacklist(req.token)
+			.then(() => res.status(200).json({ status: `logged out`, token: req.token }).end())
+			.catch((err) => {
+				console.error(err);
+				return res
+					.status(500)
+					.json({ error: `could not log out with token ${req.token}` })
+					.end();
 			});
 	}
 }
