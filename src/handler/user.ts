@@ -1,12 +1,11 @@
 import { Request, Response } from "express";
 
-import { IRepositoryUser } from "../repositories";
+import { IRepositoryBlacklist, IRepositoryUser } from "../repositories";
 
 import { IUserDto } from "../dto";
 import { IEmpty } from "../interfaces";
 
 import { JwtAuthRequest, Payload, compareHash, hashPassword, newJwtMiddleware } from "../auth";
-import { IRepositoryBlacklist } from "../repositories/blacklist";
 
 // Custom Express `Request` no Query)
 export interface AppRequest<Params, Body> extends Request<Params, any, Body> {}
@@ -56,14 +55,18 @@ class HandlerUser implements IHandlerUser {
 	public async login(req: AppRequest<IEmpty, IUserDto>, res: Response): Promise<Response> {
 		const { username, password: plainpassword } = req.body;
 		if (!username || !plainpassword) {
-			return res.status(400).json({ error: "missing username or password " }).end();
+			return res.status(400).json({ error: "missing username or password" }).end();
+		}
+
+		if (username !== "string" || plainpassword !== "string") {
+			return res.status(400).json({ error: "username or password must be string" }).end();
 		}
 
 		return this.repo
 			.getUser(username)
 			.then((user) => {
 				if (!compareHash(plainpassword, user.password)) {
-					return res.status(401).json({ error: "invalid username or password " }).end();
+					return res.status(401).json({ error: "invalid username or password" }).end();
 				}
 
 				const payload: Payload = { id: user.id, username: user.username };
