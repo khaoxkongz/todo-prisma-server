@@ -15,6 +15,7 @@ export type HandlerFunc<Req> = (req: Req, res: Response) => Promise<Response>;
 
 export interface IHandlerUser {
 	register: HandlerFunc<AppRequest<IEmpty, IUserDto>>;
+	login: HandlerFunc<AppRequest<IEmpty, IUserDto>>;
 }
 
 export function newHandlerUser(repo: IRepositoryUser, repoBlacklist: IRepositoryBlacklist): IHandlerUser {
@@ -46,6 +47,39 @@ class HandlerUser implements IHandlerUser {
 			)
 			.catch((err) => {
 				const errMsg = `failed to create user ${username}`;
+				console.error(`${errMsg}: ${err}`);
+				return res.status(500).json({ error: errMsg }).end();
+			});
+	}
+
+	public async login(req: AppRequest<IEmpty, IUserDto>, res: Response): Promise<Response> {
+		const { username, password: plainpassword } = req.body;
+		if (!username || !plainpassword) {
+			return res.status(400).json({ error: "missing username or password " }).end();
+		}
+
+		return this.repo
+			.getUser(username)
+			.then((user) => {
+				if (!compareHash(plainpassword, user.password)) {
+					return res.status(401).json({ error: "invalid username or password " }).end();
+				}
+
+				const payload: Payload = { id: user.id, username: user.username };
+				const token = newJwtMiddleware(payload);
+
+				return res
+					.status(200)
+					.json({
+						status: "logged in",
+						id: user.id,
+						username,
+						token,
+					})
+					.end();
+			})
+			.catch((err) => {
+				const errMsg = `failed to get user ${username}`;
 				console.error(`${errMsg}: ${err}`);
 				return res.status(500).json({ error: errMsg }).end();
 			});
