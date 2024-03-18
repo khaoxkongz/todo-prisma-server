@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+import jwt, { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
 import { NextFunction, Request, Response } from "express";
 import { IRepositoryBlacklist } from "../repositories";
 
@@ -71,7 +71,16 @@ export class HandlerMiddleware {
 			return next();
 		} catch (err) {
 			console.error(`Auth failed for token ${token}: ${err}`);
-			return res.status(401).json({ error: "authentication failed" }).end();
+
+			if (err instanceof TokenExpiredError) {
+				return res.status(401).json({ error: "authentication failed for jwt expired" }).end();
+			}
+
+			if (err instanceof JsonWebTokenError) {
+				return res.status(401).json({ error: "authentication failed for invalid signature" }).end();
+			}
+
+			return res.status(500).json({ error: "Internal Server Error" }).end();
 		}
 	}
 }
