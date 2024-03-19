@@ -1,12 +1,12 @@
 import { Request, Response } from "express";
 
-import { IRepositoryUser } from "../repositories";
+import { IRepositoryBlacklist, IRepositoryUser } from "../repositories";
 
 import { IUserDto } from "../dto";
 import { IEmpty } from "../interfaces";
 
 import { JwtAuthRequest, Payload, compareHash, hashPassword, newJwtMiddleware } from "../auth";
-import { IRepositoryBlacklist } from "../repositories/blacklist";
+import { mapToUser } from "../services";
 
 // Custom Express `Request` no Query)
 export interface AppRequest<Params, Body> extends Request<Params, any, Body> {}
@@ -40,12 +40,7 @@ class HandlerUser implements IHandlerUser {
 
     return this.repo
       .createUser({ username, password: hashPassword(password) })
-      .then((user) =>
-        res
-          .status(201)
-          .json({ ...user, password: undefined })
-          .end()
-      )
+      .then((user) => res.status(201).json({ ...user, password: undefined }))
       .catch((err) => {
         const errMsg = `failed to create user ${username}`;
         console.error(`${errMsg}: ${err}`);
@@ -69,15 +64,7 @@ class HandlerUser implements IHandlerUser {
         const payload: Payload = { id: user.id, username: user.username };
         const token = newJwtMiddleware(payload);
 
-        return res
-          .status(200)
-          .json({
-            status: "logged in",
-            id: user.id,
-            username,
-            token,
-          })
-          .end();
+        return res.status(200).json(mapToUser(user.id, username, token));
       })
       .catch((err) => {
         const errMsg = `failed to get user ${username}`;
@@ -86,21 +73,16 @@ class HandlerUser implements IHandlerUser {
       });
   }
 
-  // async logout(
-  // 	req: JwtAuthRequest<Empty, Empty>,
-  // 	res: Response
-  // ): Promise<Response> {
-  // 	try {
-  // 		await this.repoBlacklist.addToBlacklist(req.token);
-  // 		return res
-  // 			.status(200)
-  // 			.json({ status: `${req.token} blacklisted - logout successful` })
-  // 			.end();
-  // 	} catch (err) {
-  // 		return res
-  // 			.status(500)
-  // 			.json({ error: `failed to add ${req.token} to blacklist` });
-  // 	}
+  // async logout(req: JwtAuthRequest<Empty, Empty>, res: Response): Promise<Response> {
+  //   try {
+  //     await this.repoBlacklist.addToBlacklist(req.token);
+  //     return res
+  //       .status(200)
+  //       .json({ status: `${req.token} blacklisted - logout successful` })
+  //       .end();
+  //   } catch (err) {
+  //     return res.status(500).json({ error: `failed to add ${req.token} to blacklist` });
+  //   }
   // }
 
   async logout(req: JwtAuthRequest<IEmpty, IEmpty>, res: Response): Promise<Response> {
@@ -108,11 +90,9 @@ class HandlerUser implements IHandlerUser {
       .addToBlacklist(req.token)
       .then(() => res.status(200).json({ status: `logged out`, token: req.token }).end())
       .catch((err) => {
-        console.error(err);
-        return res
-          .status(500)
-          .json({ error: `could not log out with token ${req.token}` })
-          .end();
+        const errMsg = `could not log out with token ${req.token}`;
+        console.error(`${errMsg}: ${err}`);
+        return res.status(500).json({ error: errMsg });
       });
   }
 }
