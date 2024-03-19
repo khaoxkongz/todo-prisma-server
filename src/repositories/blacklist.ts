@@ -1,8 +1,6 @@
 import { RedisClientType } from "redis";
 import { verify } from "jsonwebtoken";
-
-export const BLACKLIST_KEY = "jwt-blacklist";
-export const EXPIRATION_KEY = "jwt-expirations";
+import { BLACKLIST_KEY, EXPIRATION_KEY } from "../utils.ts";
 
 export interface IRepositoryBlacklist {
   addToBlacklist(token: string): Promise<void>;

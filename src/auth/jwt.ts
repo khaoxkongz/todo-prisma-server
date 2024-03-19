@@ -1,8 +1,7 @@
 import jwt from "jsonwebtoken";
 import { NextFunction, Request, Response } from "express";
 import { IRepositoryBlacklist } from "../repositories";
-
-export const secret = process.env.JWT_SECRET || "todo-secrets";
+import { secret } from "../utils.ts";
 
 export interface Payload {
   id: number;

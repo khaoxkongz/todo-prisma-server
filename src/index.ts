@@ -5,17 +5,15 @@ import { PrismaClient } from "@prisma/client";
 
 import { newRepositoryBlacklist, newRepositoryTodo, newRepositoryUser } from "./repositories";
 import { newHandlerTodo, newHandlerUser } from "./handler";
-import { HandlerMiddleware, secret } from "./auth";
+import { HandlerMiddleware } from "./auth";
 
 import { expirer } from "./services";
+import { REDIS_URL, secret } from "./utils.ts";
 
 async function main() {
   const db = new PrismaClient();
   const redis = createClient({
-    socket: {
-      host: "localhost",
-      port: 6379,
-    },
+    url: REDIS_URL,
   });
 
   try {

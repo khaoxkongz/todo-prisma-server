@@ -1,5 +1,5 @@
 import { RedisClientType } from "redis";
-import { BLACKLIST_KEY, EXPIRATION_KEY } from "../repositories";
+import { BLACKLIST_KEY, EXPIRATION_KEY } from "../utils.ts";
 import { formatDate } from ".";
 
 export async function expirer(redis: RedisClientType<any, any, any>) {
