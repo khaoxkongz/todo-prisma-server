@@ -1,9 +1,10 @@
 import express from "express";
+
 import { createClient } from "redis";
 import { PrismaClient } from "@prisma/client";
 
-import { newRepositoryBlacklist, newRepositoryUser } from "./repositories";
-import { newHandlerUser } from "./handler/user";
+import { newRepositoryBlacklist, newRepositoryTodo, newRepositoryUser } from "./repositories";
+import { newHandlerTodo, newHandlerUser } from "./handler";
 import { HandlerMiddleware } from "./auth";
 
 async function main() {
@@ -26,6 +27,8 @@ async function main() {
   const repoUser = newRepositoryUser(db); // Entities
   const repoBlacklist = newRepositoryBlacklist(redis);
   const handlerUser = newHandlerUser(repoUser, repoBlacklist); // Controller
+  const repoTodo = newRepositoryTodo(db);
+  const handlerTodo = newHandlerTodo(repoTodo);
 
   const handlerMiddleware = new HandlerMiddleware(repoBlacklist);
 
