@@ -88,4 +88,54 @@ class handlerTodo implements IHandlerTodo {
         return res.status(500).json({ error: errMsg });
       });
   }
+
+  public async updateTodo(req: JwtAuthRequest<IWithId, IWithMsg>, res: Response): Promise<Response> {
+    const id = Number(req.params.id);
+    // isNaN checks if its arg is NaN
+    if (isNaN(id)) {
+      return res.status(400).json({ error: `id ${req.params.id} is not a number }` });
+    }
+    const { msg } = req.body;
+
+    if (!msg) {
+      return res.status(400).json({ error: "missing msg in json body" }).end();
+    }
+
+    return this.repo
+      .updateUserTodo({ id, ownerId: req.payload.id, msg })
+      .then((updated) => res.status(201).json(updated).end())
+      .catch((err) => {
+        const errMsg = `failed to update todo ${id}`;
+        console.error(`${errMsg}: ${err}`);
+        return res.status(500).json({ error: errMsg }).end();
+      });
+  }
+
+  public async deleteTodo(req: JwtAuthRequest<IWithId, IEmpty>, res: Response): Promise<Response> {
+    const id = Number(req.params.id);
+    // isNaN checks if its arg is NaN
+    if (isNaN(id)) {
+      return res.status(400).json({ error: `id ${req.params.id} is not a number} ` });
+    }
+
+    return this.repo
+      .deleteUserTodoById({ id, ownerId: req.payload.id })
+      .then((deleted) => res.status(200).json(deleted).end())
+      .catch((err) => {
+        const errMsg = `failed to delete todo ${id}`;
+        console.error(`${errMsg}: ${err}`);
+        return res.status(500).json({ error: errMsg });
+      });
+  }
+
+  public async deleteTodos(req: JwtAuthRequest<IEmpty, IEmpty>, res: Response): Promise<Response> {
+    return this.repo
+      .deleteUserTodos(req.payload.id)
+      .then(() => res.status(200).json({ status: "todos cleared successfully" }))
+      .catch((err) => {
+        const errMsg = `failed to clear todos`;
+        console.error(`${errMsg}: ${err}`);
+        return res.status(500).json({ error: errMsg }).end();
+      });
+  }
 }
