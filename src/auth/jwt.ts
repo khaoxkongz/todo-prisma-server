@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import { NextFunction, Request, Response } from "express";
 import { IRepositoryBlacklist } from "../repositories";
 
-const secret = process.env.JWT_SECRET || "todo-secrets";
+export const secret = process.env.JWT_SECRET || "todo-secrets";
 
 export interface Payload {
   id: number;
