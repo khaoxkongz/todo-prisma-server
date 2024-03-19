@@ -4,7 +4,7 @@ services:
     image: postgres:15
     restart: always
     environment:
-      - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
+      POSTGRESS_PASSWORD: ${POSTGRESS_PASSWORD}
     expose:
       - 5432
     ports:
