@@ -7,6 +7,8 @@ import { newRepositoryBlacklist, newRepositoryTodo, newRepositoryUser } from "./
 import { newHandlerTodo, newHandlerUser } from "./handler";
 import { HandlerMiddleware } from "./auth";
 
+import { expirer } from "./services";
+
 async function main() {
   const db = new PrismaClient();
   const redis = createClient({
@@ -24,6 +26,7 @@ async function main() {
     return;
   }
 
+  expirer(redis);
   const repoUser = newRepositoryUser(db); // Entities
   const repoBlacklist = newRepositoryBlacklist(redis);
   const handlerUser = newHandlerUser(repoUser, repoBlacklist); // Controller
