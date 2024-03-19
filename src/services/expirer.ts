@@ -1,5 +1,5 @@
 import { RedisClientType } from "redis";
-import { keyBlacklist, keyJwtExpire } from "../repositories";
+import { BLACKLIST_KEY, EXPIRATION_KEY } from "../repositories";
 import { formatDate } from ".";
 
 export async function expirer(redis: RedisClientType<any, any, any>) {
@@ -18,13 +18,13 @@ export async function expirer(redis: RedisClientType<any, any, any>) {
 
 async function expire(redis: RedisClientType<any, any, any>) {
   // Get all blacklisted tokens
-  const blacklisteds = await redis.sMembers(keyBlacklist);
+  const blacklisteds = await redis.sMembers(BLACKLIST_KEY);
   const now = Date.now();
 
   // Use for...of loop with try/catch block
   for (const token of blacklisteds) {
     try {
-      const expStr = await redis.hGet(keyJwtExpire, token);
+      const expStr = await redis.hGet(EXPIRATION_KEY, token);
       if (!expStr) {
         continue;
       }
@@ -38,8 +38,8 @@ async function expire(redis: RedisClientType<any, any, any>) {
       if (now >= exp) {
         // Use Redis transaction for atomic operations
         const multi = redis.multi();
-        multi.sRem(keyBlacklist, token);
-        multi.hDel(keyJwtExpire, token);
+        multi.sRem(BLACKLIST_KEY, token);
+        multi.hDel(EXPIRATION_KEY, token);
         await multi.exec();
 
         console.log(`Expiring ${token} at ${formatDate(new Date(now))}`);
