@@ -1,53 +1,53 @@
 import { RedisClientType } from "redis";
-import { decode } from "jsonwebtoken";
+import { verify } from "jsonwebtoken";
 
-export const keyBlacklist = "todo-jwt-blacklist"; // set
-export const keyJwtExpire = "todo-jwt-expirations"; // hash
+export const BLACKLIST_KEY = "jwt-blacklist";
+export const EXPIRATION_KEY = "jwt-expirations";
 
 export interface IRepositoryBlacklist {
   addToBlacklist(token: string): Promise<void>;
   isBlacklisted(token: string): Promise<boolean>;
 }
 
-export function newRepositoryBlacklist(db: RedisClientType<any, any, any>): IRepositoryBlacklist {
-  return new RepositoryBlacklist(db);
+export function newRepositoryBlacklist(redisClient: RedisClientType<any, any, any>, publicKey: string): IRepositoryBlacklist {
+  return new BlacklistRepository(redisClient, publicKey);
 }
 
-class RepositoryBlacklist {
-  private db: RedisClientType<any>;
+class BlacklistRepository implements IRepositoryBlacklist {
+  private redisClient: RedisClientType<any, any, any>;
+  private publicKey: string;
 
-  constructor(db: RedisClientType<any>) {
-    this.db = db;
+  constructor(redisClient: RedisClientType<any, any, any>, publicKey: string) {
+    this.redisClient = redisClient;
+    this.publicKey = publicKey;
   }
 
-  private async sAdd(token: string): Promise<void> {
-    await this.db.sAdd(keyBlacklist, token);
+  private async addToBlacklistAndExpiration(token: string, expiration: number): Promise<void> {
+    const multi = this.redisClient.multi();
+    multi.sAdd(BLACKLIST_KEY, token);
+    multi.hSet(EXPIRATION_KEY, token, expiration);
+    await multi.exec();
   }
 
   public async addToBlacklist(token: string): Promise<void> {
-    const decoded = decode(token);
-    if (!decoded) {
-      return this.sAdd(token);
+    try {
+      const decoded = verify(token, this.publicKey);
+      if (typeof decoded === "object" && decoded.exp) {
+        await this.addToBlacklistAndExpiration(token, decoded.exp);
+      } else {
+        await this.redisClient.sAdd(BLACKLIST_KEY, token);
+      }
+    } catch (err) {
+      console.error("Error adding token to blacklist:", err);
     }
-    if (typeof decoded === "string") {
-      return this.sAdd(token);
-    }
-
-    const exp = decoded.exp;
-    if (!exp) {
-      return this.sAdd(token);
-    }
-
-    // try {
-    await this.sAdd(token);
-    await this.db.hSet(keyJwtExpire, token, exp);
-    // } catch (err) {
-    // console.log({ token, t: typeof token });
-    // console.error(err);
-    // }
   }
 
   public async isBlacklisted(token: string): Promise<boolean> {
-    return await this.db.sIsMember(keyBlacklist, token);
+    try {
+      return await this.redisClient.sIsMember(BLACKLIST_KEY, token);
+    } catch (err) {
+      console.error("Error checking if token is blacklisted:", err);
+      return false;
+    }
   }
 }
