@@ -24,7 +24,7 @@ class RepositoryBlacklist {
     await this.db.sAdd(keyBlacklist, token);
   }
 
-  async addToBlacklist(token: string): Promise<void> {
+  public async addToBlacklist(token: string): Promise<void> {
     const decoded = decode(token);
     if (!decoded) {
       return this.sAdd(token);
@@ -47,7 +47,7 @@ class RepositoryBlacklist {
     // }
   }
 
-  async isBlacklisted(token: string): Promise<boolean> {
+  public async isBlacklisted(token: string): Promise<boolean> {
     return await this.db.sIsMember(keyBlacklist, token);
   }
 }
